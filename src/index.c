@@ -5,10 +5,6 @@
 
 #include "./index.h"
 
-#define TEST_STRING "{\"key1\":\"value1\",\"key2\":5,\"key3\":\"value3\"}"
-#define TEST_MOLECULE_STRING "\"key1\":\"value1\""
-#define ATOM_TEST_STRING "\"key1\""
-
 /**
  * utility: display an standardized error message and exits the program
  * @param err_num error code

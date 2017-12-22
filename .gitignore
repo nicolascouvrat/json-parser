@@ -1,4 +1,6 @@
 # ignore binaries
-*.o
-*.out
+src/*.o
+src/*.a
 
+# ignore test files
+test/*.test

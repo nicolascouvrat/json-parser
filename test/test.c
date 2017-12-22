@@ -2,8 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define __DEBUG__
-
 #include "./testutil.h"
 #include "../src/index.c"
 
@@ -254,7 +252,6 @@ int main() {
   test(test_molecule_matches_string, "molecule matches string");
   test(test_organism_contains_key, "organism contains key");
   test(test_organism_find, "organism find value of key");
-
 
   printf("\n##############################\n"
          "##    Test session ended    ##\n"
