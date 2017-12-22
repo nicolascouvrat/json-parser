@@ -1,22 +1,24 @@
 CC=gcc
 AR=ar
 TDIR=../test
+BDIR=../build
 
 %.o: %.c index.h
-	$(CC) -c $< -o $@
+	mkdir -p $(BDIR)
+	$(CC) -c $< -o $(BDIR)/$@
 
 libindex.a: index.o
-	$(AR) -rc $@ $^
+	$(AR) -rc $(BDIR)/$@ $(BDIR)/$^
 
 test: $(TDIR)/test.c
-	$(CC) $< -o $(TDIR)/$@.test
-	./$(TDIR)/$@.test
+	$(CC) $< -o $(TDIR)/$@
+	./$(TDIR)/$@
 
 test_debug: $(TDIR)/test.c
-	$(CC) $^ -o $(TDIR)/$@.test -D__DEBUG__=1
-	./$(TDIR)/$@.test
+	$(CC) $^ -o $(TDIR)/$@ -D__DEBUG__=1
+	./$(TDIR)/$@
 
 clean: 
-	rm -f *.o *.a
+	rm -rf $(BDIR)
 
 .PHONY: clean test

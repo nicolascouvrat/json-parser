@@ -1,6 +1,8 @@
-# ignore binaries
-src/*.o
-src/*.a
-
 # ignore test files
-test/*.test
+# (ignore all except with ext)
+*
+!*/
+!*.*
+
+# ignore binaries
+build
