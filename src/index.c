@@ -78,9 +78,6 @@ void json_atom_set(json_atom_t *atom, char *start, char *end, json_atom_type_t t
 }
 
 void json_atom_destroy(json_atom_t *atom) {
-  // since free marks the *target* of the pointer as free
-  // we do NOT want to free start & end
-  // as we do not want to alter the initial string
   free(atom);
 }
 
@@ -106,11 +103,10 @@ void json_molecule_destroy(json_molecule_t *molecule) {
 }
 
 json_organism_t* json_organism_initialize(int size, char *ref_string) {
+  // in the end, this will be included somewhere else to avoid the extra cost of strlen
   int ref_string_len = strlen(ref_string);
-  // in the end, this will be included somewhere else to avoid the extra cost
-  // if (*ref_string != '{' || *(ref_string + ref_string_len - 1) != '}')
-  //   return _display_parsing_error_and_return_null("Invalid organism.", ref_string, ref_string_len);
   json_organism_t *organism = malloc(sizeof(json_organism_t));
+
   if (organism == NULL)
     _display_error_and_exit(errno);
 
@@ -119,8 +115,10 @@ json_organism_t* json_organism_initialize(int size, char *ref_string) {
   organism->ref_string = ref_string;
   organism->ref_string_len = ref_string_len;
   organism->molecules = malloc(sizeof(json_molecule_t*) * size);
+
   if (organism->molecules == NULL)
     _display_error_and_exit(errno);
+
   int i;
   for (i = 0; i < size; i++) {
     organism->molecules[i] = NULL;
@@ -206,10 +204,14 @@ int json_size(char *string) {
 }
 
 /**
+ * populates the atom structure, performing a few structural checks along the way
+ * TODO: should perhaps move the test somewhere else?
  * what is expected here are two pointers delimiting a string of shape
  * "some stuff" OR some_stuff (first case are string value, other is number)
  * ie: "some stuff"        OR 123456789
  *     ^start      ^end       ^start   ^end
+ *
+ * @param  atom  pointer to the atom structure
  * @param  start
  * @param  end
  * @return       error code
@@ -240,12 +242,15 @@ int json_atom_populate(json_atom_t *atom, char* start, char* end) {
 }
 
 /**
+ * Populates the molecule structure
  * what is expected here pointers delimiting string of shape
  * "key":value        OR "key":"string_value"
  * ^start     ^end       ^start              ^end
+ *
+ * @param  molecule pointer to the molecule structure
  * @param  start
  * @param  end
- * @return       error code
+ * @return          error code
  */
 
 int json_molecule_populate(json_molecule_t *molecule, char* start, char* end) {
@@ -276,6 +281,12 @@ int json_molecule_populate(json_molecule_t *molecule, char* start, char* end) {
   return RETURN_SUCCESS;
 }
 
+/**
+ * Populates the organism structure by parsing the JSON string ref_string
+ *
+ * @param  organism pointer to the organism structure
+ * @return          error code
+ */
 int json_organism_populate(json_organism_t *organism) {
   // skip the first {
   char *ref_string_start = organism->ref_string;
@@ -319,51 +330,63 @@ int json_organism_populate(json_organism_t *organism) {
 
   return 0;
 }
-//
-// char* get_value_from_atom(json_atom_t *atom) {
-//   int length = atom->end - atom->start;
-//   char *string = malloc(sizeof(char) * (length + 1));
-//   strncpy(string, atom->start, length);
-//   string[length] = '\0';
-//   return string;
-// }
-//
-// int json_molecule_matches_string(json_molecule_t *molecule, char* string) {
-//   int counter = 0;
-//   int key_len = molecule->key->end - molecule->key->start;
-//   char *pointer = string;
-//   while (*pointer && counter <= key_len) {
-//     if (*pointer++ != molecule->key->start[counter])
-//       return 0;
-//     counter ++;
-//   }
-//   if (counter != key_len)
-//     return 0;
-//   return 1;
-// }
-//
-// int json_organism_contains_key(json_organism_t *organism, char *key) {
-//   int i;
-//   for (i = 0; i < organism ->size; i++) {
-//     if (json_molecule_matches_string(organism->molecules[i], key))
-//       return 1;
-//   }
-//   return 0;
-// }
-//
-// int process(char *string) {
-//   int size = json_size(string);
-//   if (size == -1) {
-//     fprintf(stderr, "Invalid JSON: %s\n", string);
-//     return -1;
-//   }
-//   printf("Number of molecules: %d \n", size);
-//   return 0;
-// }
-//
-//
-//
-// // int main() {
-// //   printf("Now testing %s\n", TEST_STRING);
-// //   return 0;
-// // }
+
+/**
+ * Tests if a molecules matches a specific key,
+ * by comparing the *values* of that molecules' key atom with the given key
+ * @param  molecule pointer to the molecule
+ * @param  string   key to test against
+ * @return          1 if match, 0 if not
+ */
+int json_molecule_matches_string(json_molecule_t *molecule, char* string) {
+  int counter = 0;
+  int key_len = molecule->key->end - molecule->key->start;
+  char *pointer = string;
+  while (*pointer && counter <= key_len) {
+    if (*pointer++ != molecule->key->start[counter])
+      return 0;
+    counter ++;
+  }
+  if (counter != key_len)
+    return 0;
+  return 1;
+}
+
+/**
+ * Tests if an organism contains a specific key
+ * @param  organism pointer to the organism
+ * @param  key      key to search for
+ * @return          1 if found, 0 if not
+ */
+int json_organism_contains_key(json_organism_t *organism, char *key) {
+  int i;
+  for (i = 0; i < organism ->size; i++) {
+    if (json_molecule_matches_string(organism->molecules[i], key))
+      return 1;
+  }
+  return 0;
+}
+
+/**
+ * Tests if an organism contains a specific key,
+ * and fills an atom structure with the value associated to that key (if found)
+ * @param  atom     pointer to an atom structure
+ * @param  organism pointer to an organism structure
+ * @param  key      key to search for
+ * @return          1 if found, 0 if not
+ */
+int json_organism_find(json_atom_t *atom, json_organism_t *organism, char *key) {
+  int i;
+  for (i = 0; i < organism->size; i++) {
+    if (json_molecule_matches_string(organism->molecules[i], key)) {
+      json_atom_set(
+        atom,
+        organism->molecules[i]->value->start,
+        organism->molecules[i]->value->end,
+        organism->molecules[i]->value->type
+      );
+      return 1;
+    }
+  }
+  return 0;
+}

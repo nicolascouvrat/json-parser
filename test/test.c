@@ -42,6 +42,23 @@ int json_atom_eq(json_atom_t *atom, char *snippet, json_atom_type_t type) {
 }
 
 
+/**
+ * Check that you can call a destroyer immediately after an initializer
+ * (making setters optional)
+ */
+
+int test_life_cycle() {
+  json_organism_t *organism = json_organism_initialize(0, "");
+  json_organism_destroy(organism);
+
+  json_molecule_t *molecule = json_molecule_initialize();
+  json_molecule_destroy(molecule);
+
+  json_atom_t *atom = json_atom_initialize();
+  json_atom_destroy(atom);
+
+  return 0;
+}
 
 int test_atom_populate() {
   char *primitive_test = "12345678";
@@ -123,8 +140,8 @@ int test_molecule_populate() {
 }
 
 int test_organism_populate() {
-  char *ref_string_test = "{\"key1\":\"value1\",\"key2\":value2}";
-  char *ref_string_invalid_test = "{\"key1\":\"value1,\"key2:value2}";
+  char *ref_string_test = "{\"key1\":\"value1\",\"key2\":1234}";
+  char *ref_string_invalid_test = "{\"key1\":\"value1,\"key2:1234}";
 
   json_organism_t *first_organism = json_organism_initialize(2, ref_string_test);
   json_organism_t *second_organism = json_organism_initialize(2, ref_string_invalid_test);
@@ -163,20 +180,63 @@ int test_organism_populate() {
   return 0;
 }
 
-/**
- * Check that you can call a destroyer immediately after an initializer
- * (making setters optional)
- */
-
-int test_life_cycle() {
-  json_organism_t *organism = json_organism_initialize(0, "");
-  json_organism_destroy(organism);
-
+int test_molecule_matches_string() {
+  char *molecule_string = "\"match\":12345";
+  char *match_test = "match";
+  char *first_fail_test = "matchs";
+  char *second_fail_test = "matc";
   json_molecule_t *molecule = json_molecule_initialize();
+
+  json_molecule_populate_wrap(molecule, molecule_string);
+
+  check(json_molecule_matches_string(molecule, match_test));
+  check(!json_molecule_matches_string(molecule, first_fail_test));
+  check(!json_molecule_matches_string(molecule, second_fail_test));
+
   json_molecule_destroy(molecule);
 
-  json_atom_t *atom = json_atom_initialize();
-  json_atom_destroy(atom);
+  return 0;
+}
+
+int test_organism_contains_key() {
+  char *organism_string = "{\"key1\":12345,\"key2\":\"value\",\"key3\":\"other value\"}";
+  char *match_test = "key1";
+  char *fail_test = "key11";
+  json_organism_t *organism = json_organism_initialize(3, organism_string);
+  json_organism_populate(organism);
+
+  check(json_organism_contains_key(organism, match_test));
+  check(!json_organism_contains_key(organism, fail_test));
+
+  json_organism_destroy(organism);
+
+  return 0;
+}
+
+int test_organism_find() {
+  char *organism_string = "{\"key1\":12345,\"key2\":\"value\",\"key3\":\"other value\"}";
+  char *match_test = "key1";
+  char *fail_test = "key11";
+  json_organism_t *organism = json_organism_initialize(3, organism_string);
+  json_atom_t *first_atom = json_atom_initialize();
+  json_atom_t *second_atom = json_atom_initialize();
+  json_organism_populate(organism);
+
+  int first_test = json_organism_find(first_atom, organism, match_test);
+  check(
+    json_atom_eq_p(
+      first_atom,
+      organism_string + 8,
+      organism_string + 13,
+      ATOM_TYPE_PRIMITIVE
+    )
+  );
+  int second_test = json_organism_find(second_atom, organism, fail_test);
+  check(!second_test);
+
+  json_organism_destroy(organism);
+  json_atom_destroy(first_atom);
+  json_atom_destroy(second_atom);
 
   return 0;
 }
@@ -187,10 +247,14 @@ int main() {
          "##############################\n\n"
        );
 
+  test(test_life_cycle, "life cycle of structures");
   test(test_atom_populate, "atom populate");
   test(test_molecule_populate, "molecule populate");
   test(test_organism_populate, "organism populate");
-  test(test_life_cycle, "life cycle of structures");
+  test(test_molecule_matches_string, "molecule matches string");
+  test(test_organism_contains_key, "organism contains key");
+  test(test_organism_find, "organism find value of key");
+
 
   printf("\n##############################\n"
          "##    Test session ended    ##\n"
