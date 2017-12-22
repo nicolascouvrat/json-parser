@@ -15,7 +15,7 @@
  */
 
 void _display_error_and_exit(int err_num) {
-  fprintf(stderr, "JSON_PARSER FATAL: %s (%d)\n", strerror(err_num), err_num);
+  fprintf(stderr, "JSON_PARSER FATAL ERROR: %s (%d)\n", strerror(err_num), err_num);
   exit(EXIT_FAILURE);
 }
 
@@ -28,6 +28,7 @@ int _display_error_and_return(int err_num, char *string, int length) {
   }
   putchar('\n');
   #endif
+
   return err_num;
 }
 
@@ -55,7 +56,12 @@ char* _find_first_char_between(char needle, char *start, char *end) {
  *   json_atom_t
  *   json_molecule_t
  *   json_organism_t
- * including initialization, value set and destruction
+ * including an initializer, a setter and a destructor for each structure
+ *
+ * NOTE: although in most regular use cases setting pointers to NULL at init is kind of a waste
+ * (because a setter will always be called somewhere before a destructor)
+ * choice has been made to do so in order to allow the use of destructor immediately
+ * after an initializer, which seemed like the most coherent behavior.
  */
 
 json_atom_t* json_atom_initialize(void) {
@@ -82,6 +88,8 @@ json_molecule_t* json_molecule_initialize(void) {
   json_molecule_t *molecule = malloc(sizeof(json_molecule_t));
   if (molecule == NULL)
     _display_error_and_exit(errno);
+  molecule->key = NULL;
+  molecule->value = NULL;
   return molecule;
 }
 
@@ -91,12 +99,15 @@ void json_molecule_set(json_molecule_t *molecule, json_atom_t *key, json_atom_t 
 }
 
 void json_molecule_destroy(json_molecule_t *molecule) {
+  if (molecule == NULL) return;
   json_atom_destroy(molecule->key);
   json_atom_destroy(molecule->value);
   free(molecule);
 }
 
-json_organism_t* json_organism_initialize(int size, char *ref_string, int ref_string_len) {
+json_organism_t* json_organism_initialize(int size, char *ref_string) {
+  int ref_string_len = strlen(ref_string);
+  // in the end, this will be included somewhere else to avoid the extra cost
   // if (*ref_string != '{' || *(ref_string + ref_string_len - 1) != '}')
   //   return _display_parsing_error_and_return_null("Invalid organism.", ref_string, ref_string_len);
   json_organism_t *organism = malloc(sizeof(json_organism_t));
@@ -110,7 +121,10 @@ json_organism_t* json_organism_initialize(int size, char *ref_string, int ref_st
   organism->molecules = malloc(sizeof(json_molecule_t*) * size);
   if (organism->molecules == NULL)
     _display_error_and_exit(errno);
-
+  int i;
+  for (i = 0; i < size; i++) {
+    organism->molecules[i] = NULL;
+  }
   return organism;
 }
 
@@ -122,7 +136,7 @@ int json_organism_add_molecule(json_organism_t* organism, json_molecule_t *molec
 }
 
 void json_organism_destroy(json_organism_t *organism) {
-  // json_molecule_t **molecule = organism->molecules;
+  if (organism == NULL) return;
   int i;
   for (i = 0; i < organism->size; i++) {
     json_molecule_destroy(organism->molecules[i]);
@@ -195,10 +209,10 @@ int json_size(char *string) {
  * what is expected here are two pointers delimiting a string of shape
  * "some stuff" OR some_stuff (first case are string value, other is number)
  * ie: "some stuff"        OR 123456789
- *     ^start     ^end        ^start  ^end
- * @param  start begin
- * @param  end   end
- * @return       new json atom
+ *     ^start      ^end       ^start   ^end
+ * @param  start
+ * @param  end
+ * @return       error code
  */
 int json_atom_populate(json_atom_t *atom, char* start, char* end) {
   char is_string_key = '\"';
@@ -210,86 +224,101 @@ int json_atom_populate(json_atom_t *atom, char* start, char* end) {
     // we have a string token
     atom_type = ATOM_TYPE_STRING;
     atom_start = start + 1;
-    if (*(start + length) != is_string_key)
+    if (*(start + length - 1) != is_string_key)
       return _display_error_and_return(ERR_INVAL, start, length);
-    atom_end = start + length;
+    atom_end = start + length - 1;
   } else {
     // we have a number token
     atom_type = ATOM_TYPE_PRIMITIVE;
     atom_start = start;
-    if (*(start + length) == is_string_key)
+    if (*(start + length - 1) == is_string_key)
       return _display_error_and_return(ERR_INVAL, start, length);
-    atom_end = end + 1;
+    atom_end = end;
   }
-  atom->start = atom_start;
-  atom->end = atom_end;
-  atom->type = atom_type;
+  json_atom_set(atom, atom_start, atom_end, atom_type);
   return RETURN_SUCCESS;
 }
-//
-// /**
-//  * what is expected here pointers delimiting string of shape
-//  * "key":value OR "key":"string_value"
-//  * @param  start begin
-//  * @param  end   end
-//  * @return       a new json molecule
-//  */
-//
-// json_molecule_t* create_molecule(char* start, char* end) {
-//   char *split_pointer = _find_first_char_between(ATOM_SPLIT_KEY, start, end);
-//   if (split_pointer == NULL)
-//     return _display_parsing_error_and_return_null("Invalid molecule", start, end - start);
-//   json_atom_t *key = create_atom(start, split_pointer - 1);
-//   // test that the key is indeed surrounded by " "
-//   if (key->type != ATOM_TYPE_STRING) {
-//     json_atom_destroy(key);
-//     return _display_parsing_error_and_return_null(
-//       "Invalid molecule (key is invalid)",
-//       start, end - split_pointer + 1
-//     );
-//   }
-//   json_atom_t *value = create_atom(split_pointer + 1, end);
-//   json_molecule_t *molecule = json_molecule_initialize();
-//   json_molecule_set(molecule, key, value);
-//   return molecule;
-// }
-//
-// void json_organism_populate(json_organism_t *organism) {
-//   // skip the first {
-//   char *ref_string_start = organism->ref_string;
-//   char *ref_string_end = organism->ref_string + organism->ref_string_len - 1;
-//   // should be {some stuff that looks like json}
-//   //           ^start                          ^end
-//   char *pointer = ref_string_start;
-//   char *needle = _find_first_char_between(
-//     MOLECULE_SPLIT_KEY,
-//     pointer,
-//     ref_string_end
-//   );
-//   int counter = 0;
-//   while (needle != NULL) {
-//     printf("needle %s\n", needle);
-//     json_molecule_t *molecule = create_molecule(pointer + 1, needle -1);
-//
-//     if (molecule != NULL)
-//       json_organism_add_molecule(organism, molecule);
-//     pointer = needle++;
-//     counter++;
-//     needle = _find_first_char_between(
-//       MOLECULE_SPLIT_KEY,
-//       needle,
-//       ref_string_end
-//     );
-//   }
-//   // still need to process the last one
-//   json_molecule_t *molecule = create_molecule(pointer + 1, ref_string_end - 1);
-//   if (molecule != NULL) {
-//     json_organism_add_molecule(organism, molecule);
-//     counter ++;
-//   }
-//   if (counter != organism->size)
-//     fprintf(stderr, "JSON_PARSER FATAL: counter != size!\n");
-// }
+
+/**
+ * what is expected here pointers delimiting string of shape
+ * "key":value        OR "key":"string_value"
+ * ^start     ^end       ^start              ^end
+ * @param  start
+ * @param  end
+ * @return       error code
+ */
+
+int json_molecule_populate(json_molecule_t *molecule, char* start, char* end) {
+  char *split_pointer = _find_first_char_between(ATOM_SPLIT_KEY, start, end);
+  int r;
+  if (split_pointer == NULL)
+    return _display_error_and_return(ERR_INVAL, start, end - start);
+  json_atom_t *key = json_atom_initialize();
+  if ((r = json_atom_populate(key, start, split_pointer)) != RETURN_SUCCESS) {
+    json_atom_destroy(key);
+    return r;
+  }
+  // test that the key is an atom of type string (strict JSON)
+  if (key->type != ATOM_TYPE_STRING) {
+    // free malloced memory (avoid leaks)
+    json_atom_destroy(key);
+    return _display_error_and_return(ERR_STRICT_JSON, start, end - split_pointer);
+  }
+
+  json_atom_t *value = json_atom_initialize();
+  if((r = json_atom_populate(value, split_pointer + 1, end)) != RETURN_SUCCESS) {
+    json_atom_destroy(value);
+    json_atom_destroy(key);
+    return r;
+  }
+
+  json_molecule_set(molecule, key, value);
+  return RETURN_SUCCESS;
+}
+
+int json_organism_populate(json_organism_t *organism) {
+  // skip the first {
+  char *ref_string_start = organism->ref_string;
+  char *ref_string_end = organism->ref_string + organism->ref_string_len;
+  // should be {some stuff that looks like json}
+  //           ^start                           ^end
+  char *pointer = ref_string_start;
+  char *needle = _find_first_char_between(
+    MOLECULE_SPLIT_KEY,
+    pointer,
+    ref_string_end
+  );
+  int counter = 0;
+  int r;
+  while (needle != NULL) {
+    json_molecule_t *molecule = json_molecule_initialize();
+    if ((r = json_molecule_populate(molecule, pointer + 1, needle)) != RETURN_SUCCESS) {
+      json_molecule_destroy(molecule);
+      return r;
+    }
+    json_organism_add_molecule(organism, molecule);
+    pointer = needle++;
+    counter++;
+    needle = _find_first_char_between(
+      MOLECULE_SPLIT_KEY,
+      needle,
+      ref_string_end
+    );
+  }
+  // still need to process the last one
+  json_molecule_t *molecule = json_molecule_initialize();
+  if ((r = json_molecule_populate(molecule, pointer + 1, ref_string_end - 1)) != RETURN_SUCCESS) {
+    json_molecule_destroy(molecule);
+    return r;
+  }
+  json_organism_add_molecule(organism, molecule);
+
+  #ifdef __DEBUG__
+  printf("Finish populating organism of size %d, added %d molecules.\n", organism->size, counter + 1);
+  #endif
+
+  return 0;
+}
 //
 // char* get_value_from_atom(json_atom_t *atom) {
 //   int length = atom->end - atom->start;

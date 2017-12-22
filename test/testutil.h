@@ -6,7 +6,7 @@ static int test_failed = 0;
 
 #define fail() return __LINE__
 #define done() return 0
-#define check(cond) do { if (!cond) fail(); } while (0)
+#define check(cond) do { if (!(cond)) fail(); } while (0)
 
 static void test(int (*func)(void), char *test_name) {
   int result = func();

@@ -6,6 +6,7 @@
 
 #define RETURN_SUCCESS 0
 #define ERR_INVAL -1
+#define ERR_STRICT_JSON -2
 
 typedef enum {
   ATOM_TYPE_UNDEFINED = 0,
@@ -40,7 +41,7 @@ json_molecule_t* json_molecule_initialize(void);
 void json_molecule_set(json_molecule_t *molecule, json_atom_t *key, json_atom_t *value);
 void json_molecule_destroy(json_molecule_t *molecule);
 
-json_organism_t* json_organism_initialize(int size, char* ref_string, int ref_string_len);
+json_organism_t* json_organism_initialize(int size, char* ref_string);
 int json_organism_add_molecule(json_organism_t *organism, json_molecule_t *molecule);
 void json_organism_destroy(json_organism_t *organism);
 
