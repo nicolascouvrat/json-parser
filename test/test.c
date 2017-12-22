@@ -239,6 +239,23 @@ int test_organism_find() {
   return 0;
 }
 
+int test_json_size() {
+  char *first_valid_json_test = "{\"key1\":\"value\",\"key2\":12345,\"key3\":\"value\"}";
+  char *second_valid_json_test = "{\"key\":12345}";
+  // question remains on how to handle the empty JSON? for now is bug...
+  char *first_invalid_json_test = "{}";
+  char *second_invalid_json_test = "{\"key\":12345,}";
+  char *third_invalid_json_test = "{\"key1\":\"value\",\"key2\";12345,\"key3\":\"value\"}";
+
+  check(json_size(first_valid_json_test) == 3);
+  check(json_size(second_valid_json_test) == 1);
+  check(json_size(first_invalid_json_test) == -1);
+  check(json_size(second_invalid_json_test) == -1);
+  check(json_size(third_invalid_json_test) == -1);
+
+  return 0;
+}
+
 int main() {
   printf("##############################\n"
          "##    Test session start    ##\n"
@@ -252,6 +269,7 @@ int main() {
   test(test_molecule_matches_string, "molecule matches string");
   test(test_organism_contains_key, "organism contains key");
   test(test_organism_find, "organism find value of key");
+  test(test_json_size, "determine json size of json string");
 
   printf("\n##############################\n"
          "##    Test session ended    ##\n"

@@ -175,8 +175,8 @@ void _json_organism_print(json_organism_t *organism) {
 
 /**
  * parses the string, counting the number of both separators
- * tests if the string is a valid JSON string
- *  defined for now as #(MOLECULE_SEP) + 1 = #(ATOM_SEP)
+ * tests if the string is a valid JSON string, defined for now as:
+ *    #(MOLECULE_SPLIT_KEY) + 1 = #(ATOM_SPLIT_KEY)
  *
  * @param  string the string to test
  * @return        number of molecules in string, or -1 if invalid
