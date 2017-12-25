@@ -48,6 +48,8 @@ void json_organism_destroy(json_organism_t *organism);
 
 // length calculus is left to the user
 int json_size(char* string, int string_len);
+int json_organism_populate(json_organism_t *organism);
+
 int json_organism_contains_key(json_organism_t *organism, char *key);
 int json_organism_find(json_atom_t *atom, json_organism_t *organism, char *key);
 
