@@ -45,6 +45,8 @@ json_organism_t* json_organism_initialize(int size, char* ref_string);
 int json_organism_add_molecule(json_organism_t *organism, json_molecule_t *molecule);
 void json_organism_destroy(json_organism_t *organism);
 
+int json_organism_populate(json_organism_t *organism);
+
 int json_size(char* string);
 int json_organism_contains_key(json_organism_t *organism, char *key);
 int json_organism_find(json_atom_t *atom, json_organism_t *organism, char *key);
