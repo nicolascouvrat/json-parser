@@ -98,9 +98,12 @@ void json_molecule_destroy(json_molecule_t *molecule) {
   free(molecule);
 }
 
-json_organism_t* json_organism_initialize(int size, char *ref_string) {
+/**
+ * String len provided by user here !!
+ */
+json_organism_t* json_organism_initialize(int size, char *ref_string, int ref_string_len) {
   // in the end, this will be included somewhere else to avoid the extra cost of strlen
-  int ref_string_len = strlen(ref_string);
+  // int ref_string_len = strlen(ref_string);
   json_organism_t *organism = malloc(sizeof(json_organism_t));
 
   if (organism == NULL)
