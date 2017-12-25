@@ -180,15 +180,20 @@ void _json_organism_print(json_organism_t *organism) {
  * parses the string, counting the number of both separators
  * tests if the string is a valid JSON string, defined for now as:
  *    #(MOLECULE_SPLIT_KEY) + 1 = #(ATOM_SPLIT_KEY)
+ * We actually make the user provide the string len, as this can otherwise
+ * cause unexpected behaviors on "strange/non null terminated" void* strings
+ * (such as MQTT payload). In that case, it is better to leave the responsability
+ * to the coder
  *
  * @param  string the string to test
  * @return        number of molecules in string, or -1 if invalid
  */
-int json_size(char *string) {
+int json_size(char *string, int string_len) {
   int atom_sep_counter = 0;
   int molecule_sep_counter = 0;
   char *c = string;
-  while (*c) {
+  int i;
+  for (i = 0; i < string_len; i++) {
     if (*c == MOLECULE_SPLIT_KEY)
       molecule_sep_counter++;
     if (*c == ATOM_SPLIT_KEY)
