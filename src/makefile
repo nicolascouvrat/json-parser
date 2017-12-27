@@ -10,7 +10,13 @@ BDIR=../build
 libindex.a: index.o
 	$(AR) -rc $(BDIR)/$@ $(BDIR)/$^
 
-test: $(TDIR)/test.c
+test: test_dyn_array test_main
+
+test_dyn_array: $(TDIR)/DynamicArrayTest.c
+	$(CC) $< -o $(TDIR)/$@
+	./$(TDIR)/$@
+
+test_main: $(TDIR)/test.c
 	$(CC) $< -o $(TDIR)/$@
 	./$(TDIR)/$@
 

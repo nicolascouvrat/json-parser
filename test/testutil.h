@@ -18,4 +18,20 @@ static void test(int (*func)(void), char *test_name) {
   }
 }
 
+static void test_session_start() {
+  printf("##############################\n"
+         "##    Test session start    ##\n"
+         "##############################\n\n"
+       );
+}
+
+static void test_session_end() {
+  printf("\n##############################\n"
+         "##    Test session ended    ##\n"
+         "##                          ##\n"
+         "## failed: %d  |  success: %d ##\n"
+         "##############################\n",
+         test_failed, test_passed);
+}
+
 #endif

@@ -46,7 +46,7 @@ int json_atom_eq(json_atom_t *atom, char *snippet, json_atom_type_t type) {
  */
 
 int test_life_cycle() {
-  json_organism_t *organism = json_organism_initialize(0, "");
+  json_organism_t *organism = json_organism_initialize(0, "", 0);
   json_organism_destroy(organism);
 
   json_molecule_t *molecule = json_molecule_initialize();
@@ -55,7 +55,7 @@ int test_life_cycle() {
   json_atom_t *atom = json_atom_initialize();
   json_atom_destroy(atom);
 
-  return 0;
+  done();
 }
 
 int test_atom_populate() {
@@ -80,7 +80,7 @@ int test_atom_populate() {
 
   json_atom_destroy(atom);
 
-  return 0;
+  done();
 }
 
 int test_molecule_populate() {
@@ -134,15 +134,15 @@ int test_molecule_populate() {
   json_molecule_destroy(third_molecule);
   json_molecule_destroy(fourth_molecule);
 
-  return 0;
+  done();
 }
 
 int test_organism_populate() {
   char *ref_string_test = "{\"key1\":\"value1\",\"key2\":1234}";
   char *ref_string_invalid_test = "{\"key1\":\"value1,\"key2:1234}";
 
-  json_organism_t *first_organism = json_organism_initialize(2, ref_string_test);
-  json_organism_t *second_organism = json_organism_initialize(2, ref_string_invalid_test);
+  json_organism_t *first_organism = json_organism_initialize(2, ref_string_test, strlen(ref_string_test));
+  json_organism_t *second_organism = json_organism_initialize(2, ref_string_invalid_test, strlen(ref_string_invalid_test));
 
   int first_test = json_organism_populate(first_organism);
   check(
@@ -175,7 +175,7 @@ int test_organism_populate() {
   json_organism_destroy(first_organism);
   json_organism_destroy(second_organism);
 
-  return 0;
+  done();
 }
 
 int test_molecule_matches_string() {
@@ -193,14 +193,14 @@ int test_molecule_matches_string() {
 
   json_molecule_destroy(molecule);
 
-  return 0;
+  done();
 }
 
 int test_organism_contains_key() {
   char *organism_string = "{\"key1\":12345,\"key2\":\"value\",\"key3\":\"other value\"}";
   char *match_test = "key1";
   char *fail_test = "key11";
-  json_organism_t *organism = json_organism_initialize(3, organism_string);
+  json_organism_t *organism = json_organism_initialize(3, organism_string, strlen(organism_string));
   json_organism_populate(organism);
 
   check(json_organism_contains_key(organism, match_test));
@@ -208,14 +208,14 @@ int test_organism_contains_key() {
 
   json_organism_destroy(organism);
 
-  return 0;
+  done();
 }
 
 int test_organism_find() {
   char *organism_string = "{\"key1\":12345,\"key2\":\"value\",\"key3\":\"other value\"}";
   char *match_test = "key1";
   char *fail_test = "key11";
-  json_organism_t *organism = json_organism_initialize(3, organism_string);
+  json_organism_t *organism = json_organism_initialize(3, organism_string, strlen(organism_string));
   json_atom_t *first_atom = json_atom_initialize();
   json_atom_t *second_atom = json_atom_initialize();
   json_organism_populate(organism);
@@ -236,7 +236,7 @@ int test_organism_find() {
   json_atom_destroy(first_atom);
   json_atom_destroy(second_atom);
 
-  return 0;
+  done();
 }
 
 int test_json_size() {
@@ -247,20 +247,17 @@ int test_json_size() {
   char *second_invalid_json_test = "{\"key\":12345,}";
   char *third_invalid_json_test = "{\"key1\":\"value\",\"key2\";12345,\"key3\":\"value\"}";
 
-  check(json_size(first_valid_json_test) == 3);
-  check(json_size(second_valid_json_test) == 1);
-  check(json_size(first_invalid_json_test) == -1);
-  check(json_size(second_invalid_json_test) == -1);
-  check(json_size(third_invalid_json_test) == -1);
+  check(json_size(first_valid_json_test, strlen(first_valid_json_test)) == 3);
+  check(json_size(second_valid_json_test, strlen(second_valid_json_test)) == 1);
+  check(json_size(first_invalid_json_test, strlen(first_invalid_json_test)) == -1);
+  check(json_size(second_invalid_json_test, strlen(second_invalid_json_test)) == -1);
+  check(json_size(third_invalid_json_test, strlen(third_invalid_json_test)) == -1);
 
-  return 0;
+  done();
 }
 
 int main() {
-  printf("##############################\n"
-         "##    Test session start    ##\n"
-         "##############################\n\n"
-       );
+  test_session_start();
 
   test(test_life_cycle, "life cycle of structures");
   test(test_atom_populate, "atom populate");
@@ -271,11 +268,6 @@ int main() {
   test(test_organism_find, "organism find value of key");
   test(test_json_size, "determine json size of json string");
 
-  printf("\n##############################\n"
-         "##    Test session ended    ##\n"
-         "##                          ##\n"
-         "## failed: %d  |  success: %d ##\n"
-         "##############################\n",
-         test_failed, test_passed);
-  return 0;
+  test_session_end();
+  done();
 }
