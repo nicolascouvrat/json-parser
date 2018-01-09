@@ -26,9 +26,12 @@ typedef struct json_atom {
 typedef struct json_molecule {
   json_atom_t *key;
   json_atom_t *value;
+  // if not null, the molecule is nested
+  struct json_molecule *parent;
 } json_molecule_t;
 
 typedef struct json_organism {
+  // size is contained in the dynamic array
   dynamic_array_t *molecules;
   char *ref_string;
 } json_organism_t;
