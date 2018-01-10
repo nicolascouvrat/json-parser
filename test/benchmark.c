@@ -2,20 +2,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../src/index.c"
+#include "../src/jspr.c"
 #define TEST_STRING "{\"key1\":\"value1\",\"key2\":12345}"
 #define LEN_TEST_STRING 36
 
 int test_run(int number_of_runs) {
   int i;
   for (i = 0; i < number_of_runs; i++) {
-    int len = json_size(TEST_STRING, LEN_TEST_STRING);
+    int len = jspr_size(TEST_STRING, LEN_TEST_STRING);
     if (len == -1)
       exit(EXIT_FAILURE);
-    json_organism_t *organism = json_organism_initialize(len, TEST_STRING, LEN_TEST_STRING);
-    if (json_organism_populate(organism) != 0)
+    jspr_organism_t *organism = jspr_organism_initialize(len, TEST_STRING, LEN_TEST_STRING);
+    if (jspr_organism_populate(organism) != 0)
       exit(EXIT_FAILURE);
-    json_organism_destroy(organism);
+    jspr_organism_destroy(organism);
   }
 }
 

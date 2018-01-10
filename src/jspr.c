@@ -270,10 +270,18 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
   int is_string_opened = 0;
   char *c = start;
   while (*c) {
+    // detect '"' related errors
+    if (
+      is_string_opened == -1 &&
+      !(*c == '}' || *c == ':' || *c == ',' || *c == ' ')
+    ) {
+      printf("There is something wrong with '\"', check around %s\n", c);
+      return NULL;
+    }
+    // main test chain
     if (*c == '}') {
-      if (is_string_opened || is_key) {
-        // we have an error here
-        printf("should not close with '}' on a key alone or if string is opened!\n");
+      if (is_string_opened == 1 || is_key) {
+        printf("Key without value found! Check around %s.\n", c);
         return NULL;
       }
       if (!is_atom_opened) {
@@ -283,36 +291,41 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
         return NULL;
       }
       backtrack((GET_MOLECULE(organism, current_index))->value, c);
+      if (is_string_opened == -1) is_string_opened = 0;
       return c;
     }
-    else if (*c == ':' && !is_string_opened) {
+    else if (*c == ':' && is_string_opened != 1) {
       if (!is_atom_opened) {
         // this is the "key":"value",: case, or "key"::
         // (double closing token)
-        // TODO: figure a way to throw?
-        printf("double closing token error!\n");
+        printf("Double closing token detected! Check around %s\n", c);
         return NULL;
       }
       backtrack((GET_MOLECULE(organism, current_index))->key, c);
+      if (is_string_opened == -1) is_string_opened = 0;
       is_key = 0;
       is_atom_opened = 0;
     }
-    else if (*c == ',' && !is_string_opened) {
+    else if (*c == ',' && is_string_opened != 1) {
       if (!is_atom_opened) {
-        printf("double closing token error!\n");
+        printf("Double closing token detected! Check around %s\n", c);
         return NULL;
       }
       if (is_key) {
-        printf("a key cannot be left alone (must be a key:value pair)!\n");
+        printf("Key without value found! Check around %s\n", c);
       }
       backtrack((GET_MOLECULE(organism, current_index))->value, c);
+      if (is_string_opened == -1) is_string_opened = 0;
       current_index++;
       is_atom_opened = 0;
       is_key = 1;
     }
-    else if (*c == '"') is_string_opened = !is_string_opened;
-    else if (*c == ' ' && !is_string_opened);
-    else if (*c == '{' && !is_string_opened); // TODO: recursion
+    else if (*c == '"') {
+      if (is_string_opened == 1) is_string_opened = -1;
+      else is_string_opened = 1;
+    }
+    else if (*c == ' ' && is_string_opened != 1);
+    else if (*c == '{' && is_string_opened != 1); // TODO: recursion
     else if (!is_atom_opened) {
       if (is_key) {
         jspr_molecule_t *molecule = jspr_molecule_initialize();
