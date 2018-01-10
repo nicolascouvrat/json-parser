@@ -8,7 +8,7 @@ Still, the parser in itself is (decently) efficient, with a time complexity of `
 
 ## Installation
 
-After cloning this repository, run `make` from the `src` directory.
+After cloning this repository, run `make` from the `src` directory. You can then install using `make install` (this might require administrator privileges).
 
 The code is fully covered by tests, that can be launched using `make test`.
 
