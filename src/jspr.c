@@ -193,6 +193,7 @@ int jspr_size(char *string, int string_len) {
   int atom_sep_counter = 0;
   int molecule_sep_counter = 0;
   char *c = string;
+  int i;
   for (i = 0; i < string_len; i++) {
     if (*c == MOLECULE_SPLIT_KEY)
       molecule_sep_counter++;
