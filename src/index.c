@@ -302,6 +302,9 @@ char* json_noname(json_organism_t *organism, char* start, json_molecule_t *paren
         printf("double closing token error!\n");
         return NULL;
       }
+      if (is_key) {
+        printf("a key cannot be left alone (must be a key:value pair)!\n");
+      }
       backtrack((GET_MOLECULE(organism, current_index))->value, c);
       current_index++;
       is_atom_opened = 0;
@@ -316,6 +319,7 @@ char* json_noname(json_organism_t *organism, char* start, json_molecule_t *paren
         json_atom_t *key = json_atom_initialize();
         key->start = c;
         molecule->key = key;
+        molecule->parent = parent;
         dynamic_array_push(organism->molecules, molecule);
       } else {
         json_atom_t *value = json_atom_initialize();
