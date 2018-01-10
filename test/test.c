@@ -46,7 +46,7 @@ int jspr_atom_eq(jspr_atom_t *atom, char *snippet, jspr_atom_type_t type) {
  */
 
 int test_life_cycle() {
-  jspr_organism_t *organism = jspr_organism_initialize(0, "");
+  jspr_organism_t *organism = jspr_organism_initialize(0, "", 0);
   jspr_organism_destroy(organism);
 
   jspr_molecule_t *molecule = jspr_molecule_initialize();
@@ -140,9 +140,11 @@ int test_molecule_populate() {
 int test_organism_populate() {
   char *ref_string_test = "{\"key1\":\"value1\",\"key2\":1234}";
   char *ref_string_invalid_test = "{\"key1\":\"value1,\"key2:1234}";
+  int ref_string_test_len = strlen(ref_string_test);
+  int ref_string_invalid_test_len = strlen(ref_string_invalid_test);
 
-  jspr_organism_t *first_organism = jspr_organism_initialize(2, ref_string_test);
-  jspr_organism_t *second_organism = jspr_organism_initialize(2, ref_string_invalid_test);
+  jspr_organism_t *first_organism = jspr_organism_initialize(2, ref_string_test, ref_string_test_len);
+  jspr_organism_t *second_organism = jspr_organism_initialize(2, ref_string_invalid_test, ref_string_invalid_test_len);
 
   int first_test = jspr_organism_populate(first_organism);
   check(
@@ -198,9 +200,10 @@ int test_molecule_matches_string() {
 
 int test_organism_contains_key() {
   char *organism_string = "{\"key1\":12345,\"key2\":\"value\",\"key3\":\"other value\"}";
+  int organism_string_len = strlen(organism_string);
   char *match_test = "key1";
   char *fail_test = "key11";
-  jspr_organism_t *organism = jspr_organism_initialize(3, organism_string);
+  jspr_organism_t *organism = jspr_organism_initialize(3, organism_string, organism_string_len);
   jspr_organism_populate(organism);
 
   check(jspr_organism_contains_key(organism, match_test));
@@ -213,9 +216,10 @@ int test_organism_contains_key() {
 
 int test_organism_find() {
   char *organism_string = "{\"key1\":12345,\"key2\":\"value\",\"key3\":\"other value\"}";
+  int organism_string_len = strlen(organism_string);
   char *match_test = "key1";
   char *fail_test = "key11";
-  jspr_organism_t *organism = jspr_organism_initialize(3, organism_string);
+  jspr_organism_t *organism = jspr_organism_initialize(3, organism_string, organism_string_len);
   jspr_atom_t *first_atom = jspr_atom_initialize();
   jspr_atom_t *second_atom = jspr_atom_initialize();
   jspr_organism_populate(organism);
@@ -247,11 +251,17 @@ int test_jspr_size() {
   char *second_invalid_jspr_test = "{\"key\":12345,}";
   char *third_invalid_jspr_test = "{\"key1\":\"value\",\"key2\";12345,\"key3\":\"value\"}";
 
-  check(jspr_size(first_valid_jspr_test) == 3);
-  check(jspr_size(second_valid_jspr_test) == 1);
-  check(jspr_size(first_invalid_jspr_test) == -1);
-  check(jspr_size(second_invalid_jspr_test) == -1);
-  check(jspr_size(third_invalid_jspr_test) == -1);
+  int first_valid_len = strlen(first_valid_jspr_test);
+  int second_valid_len = strlen(second_valid_jspr_test);
+  int first_invalid_len = strlen(first_invalid_jspr_test);
+  int second_invalid_len = strlen(second_invalid_jspr_test);
+  int third_invalid_len = strlen(third_invalid_jspr_test);
+
+  check(jspr_size(first_valid_jspr_test, first_valid_len) == 3);
+  check(jspr_size(second_valid_jspr_test, second_valid_len) == 1);
+  check(jspr_size(first_invalid_jspr_test, first_invalid_len) == -1);
+  check(jspr_size(second_invalid_jspr_test, second_invalid_len) == -1);
+  check(jspr_size(third_invalid_jspr_test, third_invalid_len) == -1);
 
   return 0;
 }
