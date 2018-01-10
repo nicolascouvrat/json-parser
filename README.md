@@ -1,6 +1,6 @@
-# JSON_PARSER
+# JSPR
 
-This C library is dedicated to parsing JSON strings, used as a subroutine in one of my IoT projects. As such, it is heavily tailored to fit my needs, and does not (yet) incorporate many features that a full fledged library would need.
+JSPR (pronounced "jasper") is a C library dedicated to parsing JSON strings, used as a subroutine in one of my IoT projects. As such, it is heavily tailored to fit my needs, and does not (yet) incorporate many features that a full fledged library would need.
 
 Although implementation is planned at a later date, the parser supports only primitive types and strings as values (i.e. no nested objects or arrays).
 
