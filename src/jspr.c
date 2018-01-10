@@ -3,22 +3,22 @@
 #include <errno.h>
 #include <string.h>
 
-#include "./index.h"
+#include "./jspr.h"
 #include "./DynamicArray.h"
 
-#define GET_MOLECULE(organism, index) (json_molecule_t*)dynamic_array_get(organism->molecules, index)
+#define GET_MOLECULE(organism, index) (jspr_molecule_t*)dynamic_array_get(organism->molecules, index)
 #define GET_SIZE(organism) organism->molecules->size
 
 
 /**
  * Print methods for
- *   json_atom_t
- *   json_molecule_t
- *   json_organism_t
+ *   jspr_atom_t
+ *   jspr_molecule_t
+ *   jspr_organism_t
  * (used for test)
  */
 
-void _json_atom_print(json_atom_t *atom) {
+void _jspr_atom_print(jspr_atom_t *atom) {
   printf("JSON_ATOM OF TYPE %d\n"
          "  start: %s\n"
          "  end: %s\n",
@@ -27,20 +27,20 @@ void _json_atom_print(json_atom_t *atom) {
          atom->end);
 }
 
-void _json_molecule_print(json_molecule_t* molecule) {
+void _jspr_molecule_print(jspr_molecule_t* molecule) {
   printf("JSON_MOLECULE\n"
          "#KEY:\n");
-  _json_atom_print(molecule->key);
+  _jspr_atom_print(molecule->key);
   printf("#VALUE:\n");
-  _json_atom_print(molecule->value);
+  _jspr_atom_print(molecule->value);
 }
 
-void _json_organism_print(json_organism_t *organism) {
+void _jspr_organism_print(jspr_organism_t *organism) {
   printf("\nJSON_ORGANISM\n");
   int i;
   for (i = 0; i < organism->molecules->size; i++) {
     printf("MOLECULE %d\n", i);
-    _json_molecule_print((json_molecule_t*)organism->molecules->items[i]);
+    _jspr_molecule_print((jspr_molecule_t*)organism->molecules->items[i]);
   }
 }
 
@@ -88,9 +88,9 @@ char* _find_first_char_between(char needle, char *start, char *end) {
 
 /**
  * Data lifecycle methods for
- *   json_atom_t
- *   json_molecule_t
- *   json_organism_t
+ *   jspr_atom_t
+ *   jspr_molecule_t
+ *   jspr_organism_t
  * including an initializer, a setter and a destructor for each structure
  *
  * NOTE: although in most regular use cases setting pointers to NULL at init is kind of a waste
@@ -99,28 +99,28 @@ char* _find_first_char_between(char needle, char *start, char *end) {
  * after an initializer, which seemed like the most coherent behavior.
  */
 
-json_atom_t* json_atom_initialize(void) {
-  json_atom_t *atom = malloc(sizeof(json_atom_t));
+jspr_atom_t* jspr_atom_initialize(void) {
+  jspr_atom_t *atom = malloc(sizeof(jspr_atom_t));
   atom->type = ATOM_TYPE_UNDEFINED;
   if (atom == NULL)
     _display_error_and_exit(errno);
   return atom;
 }
 
-void json_atom_set(json_atom_t *atom, char *start, char *end, json_atom_type_t type) {
+void jspr_atom_set(jspr_atom_t *atom, char *start, char *end, jspr_atom_type_t type) {
   atom->start = start;
   atom->end = end;
   atom->type = type;
 }
 
-void json_atom_destroy(json_atom_t *atom) {
-  // _json_atom_print(atom);
+void jspr_atom_destroy(jspr_atom_t *atom) {
+  // _jspr_atom_print(atom);
   // printf("call atom destroy\n");
   free(atom);
 }
 
-json_molecule_t* json_molecule_initialize(void) {
-  json_molecule_t *molecule = malloc(sizeof(json_molecule_t));
+jspr_molecule_t* jspr_molecule_initialize(void) {
+  jspr_molecule_t *molecule = malloc(sizeof(jspr_molecule_t));
   if (molecule == NULL)
     _display_error_and_exit(errno);
   molecule->key = NULL;
@@ -128,22 +128,22 @@ json_molecule_t* json_molecule_initialize(void) {
   return molecule;
 }
 
-void json_molecule_set(json_molecule_t *molecule, json_atom_t *key, json_atom_t *value) {
+void jspr_molecule_set(jspr_molecule_t *molecule, jspr_atom_t *key, jspr_atom_t *value) {
   molecule->key = key;
   molecule->value = value;
 }
 
-void json_molecule_destroy(json_molecule_t *molecule) {
+void jspr_molecule_destroy(jspr_molecule_t *molecule) {
   if (molecule == NULL) return;
-  json_atom_destroy(molecule->key);
-  json_atom_destroy(molecule->value);
+  jspr_atom_destroy(molecule->key);
+  jspr_atom_destroy(molecule->value);
   free(molecule);
 }
 
-json_organism_t* json_organism_initialize(char *ref_string) {
+jspr_organism_t* jspr_organism_initialize(char *ref_string) {
   // in the end, this will be included somewhere else to avoid the extra cost of strlen
   // int ref_string_len = strlen(ref_string);
-  json_organism_t *organism = malloc(sizeof(json_organism_t));
+  jspr_organism_t *organism = malloc(sizeof(jspr_organism_t));
 
   if (organism == NULL)
     _display_error_and_exit(errno);
@@ -154,18 +154,18 @@ json_organism_t* json_organism_initialize(char *ref_string) {
   return organism;
 }
 
-int json_organism_add_molecule(json_organism_t* organism, json_molecule_t *molecule) {
+int jspr_organism_add_molecule(jspr_organism_t* organism, jspr_molecule_t *molecule) {
   return dynamic_array_push(organism->molecules, molecule);
 }
 
-void json_organism_destroy(json_organism_t *organism) {
+void jspr_organism_destroy(jspr_organism_t *organism) {
   if (organism == NULL) return;
   int i;
   int max = GET_SIZE(organism);
   // the condition i < max is evaluated before each pass
   // so we need to store the size once
   for (i = 0; i < max; i++) {
-    json_molecule_destroy((json_molecule_t*)dynamic_array_pop(organism->molecules));
+    jspr_molecule_destroy((jspr_molecule_t*)dynamic_array_pop(organism->molecules));
   }
   dynamic_array_destroy(organism->molecules);
   free(organism);
@@ -173,7 +173,7 @@ void json_organism_destroy(json_organism_t *organism) {
 
 
 
-int json_atom_matches_string(json_atom_t *atom, char *string) {
+int jspr_atom_matches_string(jspr_atom_t *atom, char *string) {
   int counter = 0;
   int key_len = atom->end - atom->start;
   char *pointer = string;
@@ -194,8 +194,8 @@ int json_atom_matches_string(json_atom_t *atom, char *string) {
  * @param  string   key to test against
  * @return          1 if match, 0 if not
  */
-int json_molecule_matches_string(json_molecule_t *molecule, char* string) {
-  return json_atom_matches_string(molecule->key, string);
+int jspr_molecule_matches_string(jspr_molecule_t *molecule, char* string) {
+  return jspr_atom_matches_string(molecule->key, string);
 }
 
 /**
@@ -204,10 +204,10 @@ int json_molecule_matches_string(json_molecule_t *molecule, char* string) {
  * @param  key      key to search for
  * @return          1 if found, 0 if not
  */
-int json_organism_contains_key(json_organism_t *organism, char *key) {
+int jspr_organism_contains_key(jspr_organism_t *organism, char *key) {
   int i;
   for (i = 0; i < GET_SIZE(organism); i++) {
-    if (json_molecule_matches_string(GET_MOLECULE(organism, i), key))
+    if (jspr_molecule_matches_string(GET_MOLECULE(organism, i), key))
       return 1;
   }
   return 0;
@@ -221,12 +221,12 @@ int json_organism_contains_key(json_organism_t *organism, char *key) {
  * @param  key      key to search for
  * @return          1 if found, 0 if not
  */
-int json_organism_find(json_atom_t *atom, json_organism_t *organism, char *key) {
+int jspr_organism_find(jspr_atom_t *atom, jspr_organism_t *organism, char *key) {
   int i;
   for (i = 0; i < GET_SIZE(organism); i++) {
-    if (json_molecule_matches_string(GET_MOLECULE(organism, i), key)) {
-      json_molecule_t *molecule = GET_MOLECULE(organism, i);
-      json_atom_set(
+    if (jspr_molecule_matches_string(GET_MOLECULE(organism, i), key)) {
+      jspr_molecule_t *molecule = GET_MOLECULE(organism, i);
+      jspr_atom_set(
         atom,
         molecule->value->start,
         molecule->value->end,
@@ -249,7 +249,7 @@ int json_organism_find(json_atom_t *atom, json_organism_t *organism, char *key) 
  * @param  end_mark supposed to be the 'close mark' (':' or ',')
  * @return 0
  */
-int backtrack(json_atom_t* atom, char *end_mark) {
+int backtrack(jspr_atom_t* atom, char *end_mark) {
   do {
     end_mark--;
   } while(*end_mark == ' ');
@@ -263,7 +263,7 @@ int backtrack(json_atom_t* atom, char *end_mark) {
   return 0;
 }
 
-char* json_noname(json_organism_t *organism, char* start, json_molecule_t *parent) {
+char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *parent) {
   int current_index = GET_SIZE(organism);
   int is_key = 1;
   int is_atom_opened = 0;
@@ -315,14 +315,14 @@ char* json_noname(json_organism_t *organism, char* start, json_molecule_t *paren
     else if (*c == '{' && !is_string_opened); // TODO: recursion
     else if (!is_atom_opened) {
       if (is_key) {
-        json_molecule_t *molecule = json_molecule_initialize();
-        json_atom_t *key = json_atom_initialize();
+        jspr_molecule_t *molecule = jspr_molecule_initialize();
+        jspr_atom_t *key = jspr_atom_initialize();
         key->start = c;
         molecule->key = key;
         molecule->parent = parent;
         dynamic_array_push(organism->molecules, molecule);
       } else {
-        json_atom_t *value = json_atom_initialize();
+        jspr_atom_t *value = jspr_atom_initialize();
         value->start = c;
         (GET_MOLECULE(organism, current_index))->value = value;
       }

@@ -3,16 +3,16 @@ AR=ar
 TDIR=../test
 BDIR=../build
 
-%.o: %.c index.h DynamicArray.h
+%.o: %.c jspr.h DynamicArray.h
 	mkdir -p $(BDIR)
 	$(CC) -c $< -o $(BDIR)/$@
 
-all: libindex.a libdynamicindex.a
+all: libjspr.a libdynamicarray.a
 
-libindex.a: index.o
+libjspr.a: jspr.o
 	$(AR) -rc $(BDIR)/$@ $(BDIR)/$^
 
-libdynamicindex.a: DynamicArray.o
+libdynamicarray.a: DynamicArray.o
 	$(AR) -rc $(BDIR)/$@ $(BDIR)/$^
 
 test: test_dyn_array test_main
@@ -22,7 +22,7 @@ test_dyn_array: $(TDIR)/DynamicArrayTest.c
 	./$(TDIR)/$@
 
 test_main: $(TDIR)/test.c
-	$(CC) $< -o $(TDIR)/$@ $(BDIR)/libdynamicindex.a
+	$(CC) $< -o $(TDIR)/$@ $(BDIR)/libdynamicarray.a
 	./$(TDIR)/$@
 
 test_debug: $(TDIR)/test.c
