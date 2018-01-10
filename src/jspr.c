@@ -97,10 +97,12 @@ void jspr_molecule_destroy(jspr_molecule_t *molecule) {
   jspr_atom_destroy(molecule->value);
   free(molecule);
 }
-
-jspr_organism_t* jspr_organism_initialize(int size, char *ref_string) {
+/**
+ * String len provided by user here !!
+ */
+jspr_organism_t* jspr_organism_initialize(int size, char *ref_string, int ref_string_len) {
   // in the end, this will be included somewhere else to avoid the extra cost of strlen
-  int ref_string_len = strlen(ref_string);
+  // int ref_string_len = strlen(ref_string);
   jspr_organism_t *organism = malloc(sizeof(jspr_organism_t));
 
   if (organism == NULL)
@@ -178,14 +180,20 @@ void _jspr_organism_print(jspr_organism_t *organism) {
  * tests if the string is a valid JSON string, defined for now as:
  *    #(MOLECULE_SPLIT_KEY) + 1 = #(ATOM_SPLIT_KEY)
  *
- * @param  string the string to test
- * @return        number of molecules in string, or -1 if invalid
+ * We actually make the user provide the string len, as this can otherwise
+ * cause unexpected behaviors on "strange/non null terminated" void* strings
+ * (such as MQTT payload). In that case, it is better to leave the responsability
+ * to the coder
+ *
+ * @param  string     the string to test
+ * @param  string_len length of string to test
+ * @return            number of molecules in string, or -1 if invalid
  */
-int jspr_size(char *string) {
+int jspr_size(char *string, int string_len) {
   int atom_sep_counter = 0;
   int molecule_sep_counter = 0;
   char *c = string;
-  while (*c) {
+  for (i = 0; i < string_len; i++) {
     if (*c == MOLECULE_SPLIT_KEY)
       molecule_sep_counter++;
     if (*c == ATOM_SPLIT_KEY)

@@ -1,5 +1,5 @@
-#ifndef __INDEX_H__
-#define __INDEX_H__
+#ifndef __JSPR_H__
+#define __JSPR_H__
 
 #define MOLECULE_SPLIT_KEY ','
 #define ATOM_SPLIT_KEY ':'
@@ -41,13 +41,13 @@ jspr_molecule_t* jspr_molecule_initialize(void);
 void jspr_molecule_set(jspr_molecule_t *molecule, jspr_atom_t *key, jspr_atom_t *value);
 void jspr_molecule_destroy(jspr_molecule_t *molecule);
 
-jspr_organism_t* jspr_organism_initialize(int size, char* ref_string);
+jspr_organism_t* jspr_organism_initialize(int size, char* ref_string, int ref_string_len);
 int jspr_organism_add_molecule(jspr_organism_t *organism, jspr_molecule_t *molecule);
 void jspr_organism_destroy(jspr_organism_t *organism);
 
 int jspr_organism_populate(jspr_organism_t *organism);
 
-int jspr_size(char* string);
+int jspr_size(char* string, int string_len);
 int jspr_organism_contains_key(jspr_organism_t *organism, char *key);
 int jspr_organism_find(jspr_atom_t *atom, jspr_organism_t *organism, char *key);
 

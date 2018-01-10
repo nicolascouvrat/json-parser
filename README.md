@@ -21,13 +21,14 @@ None! The idea is to stay as simple and library-free as possible. The code only 
 ```c
 char *json_string = "{\"key1\":\"value\",\"key2\":12345,\"key3\":\"value\"}";
 
+int string_len = strlen(json_string);
 // run preliminary checks to see if the string is a valid JSON string,
 // and to assess the number of atoms
-int number_of_pairs = jspr_size(json_string);
+int number_of_pairs = jspr_size(json_string, string_len);
 if (number_of_pairs == -1) {
   // the string was invalid
 }
-jspr_organism_t *parser = jspr_organism_initialize(number_of_pairs, json_string);
+jspr_organism_t *parser = jspr_organism_initialize(number_of_pairs, json_string, string_len);
 if ((r = jspr_organism_populate(parser)) != 0) {
   // parsing error
 }
