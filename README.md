@@ -23,29 +23,29 @@ char *json_string = "{\"key1\":\"value\",\"key2\":12345,\"key3\":\"value\"}";
 
 // run preliminary checks to see if the string is a valid JSON string,
 // and to assess the number of atoms
-int number_of_pairs = json_size(json_string);
+int number_of_pairs = jspr_size(json_string);
 if (number_of_pairs == -1) {
   // the string was invalid
 }
-json_organism_t *parser = json_organism_initialize(number_of_pairs, json_string);
-if ((r = json_organism_populate(parser)) != 0) {
+jspr_organism_t *parser = jspr_organism_initialize(number_of_pairs, json_string);
+if ((r = jspr_organism_populate(parser)) != 0) {
   // parsing error
 }
 // from on, the string has been parsed.
 // Checks can be made for keys...
 char *key = "key3";
-int test = json_organism_contains_key(organism, key);
-// ... and values retrieved as a json_atom_t
-json_atom_t *value = json_atom_initialize();
-if (json_organism_find(value, organism, key)) {
+int test = jspr_organism_contains_key(organism, key);
+// ... and values retrieved as a jspr_atom_t
+jspr_atom_t *value = jspr_atom_initialize();
+if (jspr_organism_find(value, organism, key)) {
   // value has been found
 }
 
 // ...
 
 // don't forget to free the structures
-json_atom_destroy(value);
-json_organism_destroy(parser);
+jspr_atom_destroy(value);
+jspr_organism_destroy(parser);
 ```
 
 ## Documentation
@@ -54,20 +54,20 @@ json_organism_destroy(parser);
 
 The parser uses pointers to the initial string to split it in units of various sizes:
 
-* **`json_atom_t`**: smallest unit, such as a value, a key...,
-* **`json_molecule_t`**: a `key:value` pair, composed of two `json_atom_t`,
-* **`json_organism_t`**: a representation of the object behind the JSON string, containing an array of pointers towards individual `json_molecule_t`.
+* **`jspr_atom_t`**: smallest unit, such as a value, a key...,
+* **`jspr_molecule_t`**: a `key:value` pair, composed of two `jspr_atom_t`,
+* **`jspr_organism_t`**: a representation of the object behind the JSON string, containing an array of pointers towards individual `jspr_molecule_t`.
 
-`json_atom_t` has the following structure:
+`jspr_atom_t` has the following structure:
 
 ```c
-typedef struct json_atom{
+typedef struct jspr_atom{
   char* start;
   char* end;
-  json_atom_type_t type;
-} json_atom_t;
+  jspr_atom_type_t type;
+} jspr_atom_t;
 ```
-where `json_atom_type_t` defines the type of the atom, that can be `ATOM_TYPE_STRING` or `ATOM_TYPE_PRIMITIVE`, and `start`, `end` are pointers to the starting and ending position of the atom in the original string.
+where `jspr_atom_type_t` defines the type of the atom, that can be `ATOM_TYPE_STRING` or `ATOM_TYPE_PRIMITIVE`, and `start`, `end` are pointers to the starting and ending position of the atom in the original string.
 
 ### Complexity
 
