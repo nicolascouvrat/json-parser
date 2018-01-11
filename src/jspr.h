@@ -14,7 +14,8 @@
 typedef enum {
   ATOM_TYPE_UNDEFINED = 0,
   ATOM_TYPE_PRIMITIVE = 1,
-  ATOM_TYPE_STRING = 2
+  ATOM_TYPE_STRING = 2,
+  ATOM_TYPE_OBJECT = 3
 } jspr_atom_type_t;
 
 typedef struct jspr_atom {

@@ -125,6 +125,7 @@ jspr_molecule_t* jspr_molecule_initialize(void) {
     _display_error_and_exit(errno);
   molecule->key = NULL;
   molecule->value = NULL;
+  molecule->parent = NULL;
   return molecule;
 }
 
@@ -173,17 +174,20 @@ void jspr_organism_destroy(jspr_organism_t *organism) {
 
 
 
-int jspr_atom_matches_string(jspr_atom_t *atom, char *string) {
+int jspr_atom_matches_string(jspr_atom_t *atom, char *string, int len) {
   int counter = 0;
   int key_len = atom->end - atom->start;
+  if (len != key_len) return 0;
+
   char *pointer = string;
-  while (*pointer && counter <= key_len) {
+  while (counter < len) {
     if (*pointer++ != atom->start[counter])
       return 0;
     counter ++;
   }
-  if (counter != key_len)
-    return 0;
+  //TODO: this is unecessary?
+  // if (counter != len)
+  //   return 0;
   return 1;
 }
 
@@ -195,7 +199,24 @@ int jspr_atom_matches_string(jspr_atom_t *atom, char *string) {
  * @return          1 if match, 0 if not
  */
 int jspr_molecule_matches_string(jspr_molecule_t *molecule, char* string) {
-  return jspr_atom_matches_string(molecule->key, string);
+  jspr_molecule_t *current = molecule;
+  char* start = string;
+  char* end = string + strlen(string);
+  int len = end - start;
+
+  int counter = 0;
+  while (end != start) {
+    end--;
+    counter ++;
+    if (*end == '.') {
+      if (current->parent == NULL) return 0;
+      if (!jspr_atom_matches_string(current->key, end + 1, counter - 1)) return 0;
+      current = current->parent;
+      counter = 0;
+    }
+  }
+  if (current->parent != NULL) return 0;
+  return jspr_atom_matches_string(current->key, end, counter);
 }
 
 /**
@@ -246,10 +267,11 @@ int jspr_organism_find(jspr_atom_t *atom, jspr_organism_t *organism, char *key) 
  * ATOM_TYPE_PRIMITIVE or ATOM_TYPE_STRING
  *
  * @param  atom     pointer to the atom structure to fill
- * @param  end_mark supposed to be the 'close mark' (':' or ',')
+ * @param  initial supposed to be the 'close mark' (':' or ',')
  * @return 0
  */
-int backtrack(jspr_atom_t* atom, char *end_mark) {
+int backtrack(jspr_atom_t* atom, char *initial) {
+  char* end_mark = initial;
   do {
     end_mark--;
   } while(*end_mark == ' ');
@@ -258,6 +280,11 @@ int backtrack(jspr_atom_t* atom, char *end_mark) {
     atom->type = ATOM_TYPE_STRING;
     return 0;
   }
+  // if (*end_mark == '}') {
+  //   atom->end = end_mark;
+  //   atom->type = ATOM_TYPE_OBJECT;
+  //   return 0;
+  // }
   atom->end = end_mark + 1;
   atom->type = ATOM_TYPE_PRIMITIVE;
   return 0;
@@ -268,8 +295,16 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
   int is_key = 1;
   int is_atom_opened = 0;
   int is_string_opened = 0;
+  // used to signal that we just exited a recursion layer
+  // therefore the latest molecule in the organism molecules array has been filled
+  // and we do not need to use backtrack (it would actually event segfault in some cases)
+  int is_object_just_closed = 0;
+
   char *c = start;
+  printf("Starting on %s\n", c);
   while (*c) {
+    // do it first to dodge over the opening '{'
+    c ++;
     // detect '"' related errors
     if (
       is_string_opened == -1 &&
@@ -290,7 +325,9 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
         printf("The parser does not handle empty objects for now!\n");
         return NULL;
       }
-      backtrack((GET_MOLECULE(organism, current_index))->value, c);
+      if (!is_object_just_closed)
+        backtrack((GET_MOLECULE(organism, current_index))->value, c);
+      else is_object_just_closed = 0;
       if (is_string_opened == -1) is_string_opened = 0;
       return c;
     }
@@ -314,7 +351,9 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
       if (is_key) {
         printf("Key without value found! Check around %s\n", c);
       }
-      backtrack((GET_MOLECULE(organism, current_index))->value, c);
+      if (!is_object_just_closed)
+        backtrack((GET_MOLECULE(organism, current_index))->value, c);
+      else is_object_just_closed = 0;
       if (is_string_opened == -1) is_string_opened = 0;
       current_index++;
       is_atom_opened = 0;
@@ -325,7 +364,31 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
       else is_string_opened = 1;
     }
     else if (*c == ' ' && is_string_opened != 1);
-    else if (*c == '{' && is_string_opened != 1); // TODO: recursion
+    else if (*c == '{' && is_string_opened != 1) {
+      // recursion
+      char *obj_end = jspr_noname(organism, c, GET_MOLECULE(organism, current_index));
+      if (obj_end == NULL) return NULL;
+      // because we jumped over the initialization of the molecules value,
+      // we need to create it now
+      // and we take the opportunity to complete in one go, removing necessity for
+      // a later backtrack (and so we raise the is_object_just_closed flag)
+      jspr_atom_t *value = jspr_atom_initialize();
+      value->start = c;
+      value->end = obj_end;
+      value->type = ATOM_TYPE_OBJECT;
+      (GET_MOLECULE(organism, current_index))->value = value;
+      printf("Old size %d\n", current_index);
+      // molecules have been added to the organism, so we need to refresh the size
+      current_index = GET_SIZE(organism);
+      printf("New size %d\n", current_index);
+      is_object_just_closed = 1;
+      // technically, the atom is still opened although we already completed it.
+      // we leave the task of closing it to the next closing token
+      is_atom_opened = 1;
+      // jump to the end of the nested object
+      c = obj_end;
+
+    }
     else if (!is_atom_opened) {
       if (is_key) {
         jspr_molecule_t *molecule = jspr_molecule_initialize();
@@ -341,6 +404,5 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
       }
       is_atom_opened = 1;
     }
-    c ++;
   }
 }

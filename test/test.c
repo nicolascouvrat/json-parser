@@ -10,15 +10,37 @@ char* pointer_to_end_of_string(char* string) {
   return string + len;
 }
 
-// int jspr_atom_populate_wrap(jspr_atom_t *atom, char* string) {
-//   char* start = string;
-//   return jspr_atom_populate(atom, start, pointer_to_end_of_string(start));
-// }
-//
-// int jspr_molecule_populate_wrap(jspr_molecule_t *molecule, char* string) {
-//   char *start = string;
-//   return jspr_molecule_populate(molecule, start, pointer_to_end_of_string(start));
-// }
+int t_nested_molecule_matches_string() {
+  char* test_string = "\"key\":{\"key2\":123}";
+
+  jspr_atom_t* first_key = jspr_atom_initialize();
+  jspr_atom_t* first_value = jspr_atom_initialize();
+  jspr_molecule_t* first_molecule = jspr_molecule_initialize();
+  jspr_atom_t* second_key = jspr_atom_initialize();
+  jspr_atom_t* second_value = jspr_atom_initialize();
+  jspr_molecule_t* second_molecule = jspr_molecule_initialize();
+
+  jspr_atom_set(first_key, test_string + 1, test_string + 4, 2);
+  jspr_atom_set(first_value, test_string + 7, test_string + 17, 3);
+  jspr_molecule_set(first_molecule, first_key, first_value);
+
+  jspr_atom_set(second_key, test_string + 8, test_string + 12, 2);
+  jspr_atom_set(second_value, test_string + 14, test_string + 17, 1);
+  jspr_molecule_set(second_molecule, second_key, second_value);
+  second_molecule->parent = first_molecule;
+
+  check(jspr_molecule_matches_string(second_molecule, "key.key2"));
+
+  check(!jspr_molecule_matches_string(second_molecule, "key.key2.key3"));
+  check(!jspr_molecule_matches_string(second_molecule, "key3.key.key2"));
+  check(!jspr_molecule_matches_string(second_molecule, "key2"));
+  check(!jspr_molecule_matches_string(second_molecule, "k.key2"));
+
+  jspr_molecule_destroy(first_molecule);
+  jspr_molecule_destroy(second_molecule);
+
+  done();
+}
 
 int t_molecule_matches_string() {
   char* test_string = "\"key\":\"value\"";
@@ -124,7 +146,7 @@ int t_main_process() {
   check(jspr_organism_contains_key(space_in_string, "key with space"));
 
   jspr_organism_find(atom, trailing_space, "key2");
-  check(jspr_atom_matches_string(atom, "12345"));
+  check(jspr_atom_matches_string(atom, "12345", 5));
 
   jspr_organism_destroy(basic);
   jspr_organism_destroy(trailing_space);
@@ -190,26 +212,43 @@ int t_main_process_fail() {
   done();
 }
 
+int t_main_process_nested() {
+  char *nested_json_test = "{\"key\":123, \"obj\":{\"key2\":\"value\"}}";
+
+  jspr_organism_t *nested_json = jspr_organism_initialize(nested_json_test);
+
+  char *test = jspr_noname(nested_json, nested_json_test, NULL);
+  check(test != NULL);
+  check(jspr_organism_contains_key(nested_json, "key"));
+  check(jspr_organism_contains_key(nested_json, "obj.key2"));
+
+  jspr_organism_destroy(nested_json);
+
+  done();
+}
+
 int main() {
   test_session_start();
 
-  test(t_life_cycle, "life cycle of structures");
-  test(
-    t_backtrack,
-    "backtrack function that, given the position of a closing token "
-    "will return end of previous atom"
-  );
-  test(
-    t_main_process,
-    "parse a simple JSON string (no nested objects), "
-    "and should handle spaces correctly (keep the ones in string, ignore others)"
-  );
-  test(t_molecule_matches_string, "match a string with the molecule key");
-  test(
-    t_main_process_fail,
-    "parse a simple JSON string (no nested objects), "
-    "and fails if string is incorrect"
-  );
+  // test(t_life_cycle, "life cycle of structures");
+  // test(
+  //   t_backtrack,
+  //   "backtrack function that, given the position of a closing token "
+  //   "will return end of previous atom"
+  // );
+  // test(
+  //   t_main_process,
+  //   "parse a simple JSON string (no nested objects), "
+  //   "and should handle spaces correctly (keep the ones in string, ignore others)"
+  // );
+  // test(t_molecule_matches_string, "match a string with the molecule's key");
+  // test(t_nested_molecule_matches_string, "match a string with a nested molecule's full key");
+  // test(
+  //   t_main_process_fail,
+  //   "parse a simple JSON string (no nested objects), "
+  //   "and fails if string is incorrect"
+  // );
+  test(t_main_process_nested, "parse a JSON string with nested objects");
 
   test_session_end();
   done();
