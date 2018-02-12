@@ -172,12 +172,13 @@ int t_main_process() {
  * enough in most use cases, it is NOT a JSON syntax checker and should not be used as such.
  */
 int t_main_process_fail() {
+  // double closing token -- incorrect
   char *first_double_closing_test = "{\"key\":,\"key2\":123}";
   char *second_double_closing_test = "{\"key\":  ,\"key2\":123}";
-
+  // '"' not placed correctly
   char *first_string_token_test = "{\"key:\"value\",\"key2\":123\"}";
   char *second_string_token_test = "{\"key:\"value\", \"key2\":123\":123}";
-
+  // key without value
   char *first_key_no_value_test = "{\"key\" : \"value\", \"key2\"}";
   char *second_key_no_value_test = "{\"key:value\"}";
 
@@ -214,15 +215,31 @@ int t_main_process_fail() {
 
 int t_main_process_nested() {
   char *nested_json_test = "{\"key\":123, \"obj\":{\"key2\":\"value\"}}";
+  char *double_nested_json_test = "{\"key\":123, \"obj\":{\"key2\":\"value\"}, \"double\":{\"obj\":{\"value\": 12345}}}";
 
+  jspr_organism_t *double_nested_json = jspr_organism_initialize(double_nested_json_test);
   jspr_organism_t *nested_json = jspr_organism_initialize(nested_json_test);
 
   char *test = jspr_noname(nested_json, nested_json_test, NULL);
+  char *second_test = jspr_noname(double_nested_json, double_nested_json_test, NULL);
+
   check(test != NULL);
   check(jspr_organism_contains_key(nested_json, "key"));
   check(jspr_organism_contains_key(nested_json, "obj.key2"));
 
+  check(second_test != NULL);
+  check(jspr_organism_contains_key(double_nested_json, "key"));
+  check(jspr_organism_contains_key(double_nested_json, "double"));
+  check(jspr_organism_contains_key(double_nested_json, "double.obj"));
+  check(!jspr_organism_contains_key(double_nested_json, "obj.value"));
+
+  jspr_atom_t *value = jspr_atom_initialize();
+  check(jspr_organism_find(value, double_nested_json, "double.obj.value"));
+  check(jspr_atom_matches_string(value, "12345", 5));
+
+  jspr_atom_destroy(value);
   jspr_organism_destroy(nested_json);
+  jspr_organism_destroy(double_nested_json);
 
   done();
 }
@@ -230,24 +247,24 @@ int t_main_process_nested() {
 int main() {
   test_session_start();
 
-  // test(t_life_cycle, "life cycle of structures");
-  // test(
-  //   t_backtrack,
-  //   "backtrack function that, given the position of a closing token "
-  //   "will return end of previous atom"
-  // );
-  // test(
-  //   t_main_process,
-  //   "parse a simple JSON string (no nested objects), "
-  //   "and should handle spaces correctly (keep the ones in string, ignore others)"
-  // );
-  // test(t_molecule_matches_string, "match a string with the molecule's key");
-  // test(t_nested_molecule_matches_string, "match a string with a nested molecule's full key");
-  // test(
-  //   t_main_process_fail,
-  //   "parse a simple JSON string (no nested objects), "
-  //   "and fails if string is incorrect"
-  // );
+  test(t_life_cycle, "life cycle of structures");
+  test(
+    t_backtrack,
+    "backtrack function that, given the position of a closing token "
+    "will return end of previous atom"
+  );
+  test(
+    t_main_process,
+    "parse a simple JSON string (no nested objects), "
+    "and should handle spaces correctly (keep the ones in string, ignore others)"
+  );
+  test(t_molecule_matches_string, "match a string with the molecule's key");
+  test(t_nested_molecule_matches_string, "match a string with a nested molecule's full key");
+  test(
+    t_main_process_fail,
+    "parse a simple JSON string (no nested objects), "
+    "and fails if string is incorrect"
+  );
   test(t_main_process_nested, "parse a JSON string with nested objects");
 
   test_session_end();

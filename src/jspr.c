@@ -301,7 +301,6 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
   int is_object_just_closed = 0;
 
   char *c = start;
-  printf("Starting on %s\n", c);
   while (*c) {
     // do it first to dodge over the opening '{'
     c ++;
@@ -332,6 +331,7 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
       return c;
     }
     else if (*c == ':' && is_string_opened != 1) {
+
       if (!is_atom_opened) {
         // this is the "key":"value",: case, or "key"::
         // (double closing token)
@@ -377,17 +377,15 @@ char* jspr_noname(jspr_organism_t *organism, char* start, jspr_molecule_t *paren
       value->end = obj_end;
       value->type = ATOM_TYPE_OBJECT;
       (GET_MOLECULE(organism, current_index))->value = value;
-      printf("Old size %d\n", current_index);
       // molecules have been added to the organism, so we need to refresh the size
-      current_index = GET_SIZE(organism);
-      printf("New size %d\n", current_index);
+      // Be careful to stay in the boundaries of the array...
+      current_index = GET_SIZE(organism) - 1;
       is_object_just_closed = 1;
       // technically, the atom is still opened although we already completed it.
       // we leave the task of closing it to the next closing token
       is_atom_opened = 1;
       // jump to the end of the nested object
       c = obj_end;
-
     }
     else if (!is_atom_opened) {
       if (is_key) {
